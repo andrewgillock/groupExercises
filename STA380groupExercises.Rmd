@@ -1,0 +1,1280 @@
+---
+title: 'STA 380, Part 2: Exercises'
+author: "Andrew Gillock, Ben Kanarick, Pranav Cheruku, Denise Neuman"
+date: "2022-08-15"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, results = FALSE)
+```
+
+[LINK TO GITHUB REPO: https://github.com/andrewgillock/groupExercises](https://github.com/andrewgillock/groupExercises)
+
+## Question 1: Probability Practice
+
+### Part A
+
+**RULE OF TOTAL PROBABILITY**
+$$
+P(Y) = P(TC)*P(Y | TC) + P(RC)*P(Y | RC)
+$$
+$$
+0.65 = 0.7*P(Y | TC) + 0.3*0.5
+$$
+$$
+P(Y | TC) = \frac{(0.65-(0.3*0.5))}{0.7}
+$$
+```{Part A, echo=FALSE, results = TRUE, message = TRUE}
+answer1_A = (0.65-(0.3*0.5))/0.7
+cat("The fraction of people who are truthful clickers and answered yes is:", answer1_A)
+```
+The fraction of people who are truthful clickers and answered yes is 0.714.
+
+### Part B
+
+**BAYES' RULE**
+$$
+P(YesD | Pos) = (P(Pos | YesD) * \frac{P(YesD))}{P(Pos)}
+$$
+**RULE OF TOTAL PROBABILITY**
+$$
+P(Pos) = P(YesD)·P(Pos | YesD) + P(NoD)·P(Pos | NoD)
+$$
+$$
+P(Pos) = (0.000025·0.993)+((1 - 0.000025)·(1 - 0.9999))
+$$
+$$
+probPos1_B = (0.000025*0.993)+((1 - 0.000025)*(1 - 0.9999))
+$$
+$$
+P(YesD | Pos) = \frac{(0.993 * 0.000025)}{probPos1_B}
+$$
+```{r}
+probPos1_B = (0.000025*0.993)+((1 - 0.000025)*(1 - 0.9999))
+answer1_B = (0.993 * 0.000025) / probPos1_B
+answer1_B
+```
+The probability that someone has the disease given that they tested positive is 0.199.
+
+## Question 2: Wrangling the Billboard Top 100
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+fullBillboard <- read.csv('billboard.csv')
+```
+
+```{r Q2 cleaning dataset, echo=FALSE, message = FALSE, warning=FALSE}
+Billboard <- data.frame(fullBillboard$performer, fullBillboard$song, fullBillboard$year, fullBillboard$week, fullBillboard$week_position)
+# Rename columns
+names(Billboard)[names(Billboard) == 'fullBillboard.performer'] <- 'performer'
+names(Billboard)[names(Billboard) == 'fullBillboard.song'] <- 'song'
+names(Billboard)[names(Billboard) == 'fullBillboard.year'] <- 'year'
+names(Billboard)[names(Billboard) == 'fullBillboard.week'] <- 'week'
+names(Billboard)[names(Billboard) == 'fullBillboard.week_position'] <- 'week_position'
+head(Billboard)
+```
+
+### Part A
+
+```{r Q2 Part A, echo=FALSE, message = FALSE, warning=FALSE, results = TRUE}
+by_song = Billboard %>%
+  group_by(performer, song) %>%
+  summarize(count = n()) %>%
+  arrange(desc(count))
+head(by_song, 10)
+```
+
+The table shows the top 10 songs since 1958 as measured by the total number of weeks that a song spent on the Billboard Top 100.
+The data shows that Radioactive by Imagine Dragons has been 87 weeks in the Billboard top 100, making it the song that has been more weeks in this ranking since 1958 (and up to week 22 of 2021).
+
+### Part B
+
+```{r Q2 Part B, echo=FALSE, message = FALSE, warning=FALSE}
+yearFlt <- (Billboard$year > 1958 & Billboard$year < 2021)
+BillboardFlt <- Billboard[yearFlt,]
+range(BillboardFlt$year)
+
+# GET YEARS WITH UNIQUE SONGS
+yearsWithSongs = BillboardFlt %>%
+  select(year, performer, song)
+
+# GET UNIQUE SONGS PER YEAR
+yearsUniqueSongs = unique(yearsWithSongs) %>%
+  group_by(year) %>%
+  summarize(uniqueSongs = n())
+```
+
+```{r Fig Q2B, , echo=FALSE, message = FALSE, warning=FALSE}
+# PLOT
+ggplot(yearsUniqueSongs) +
+  geom_line(aes(x = year, y = uniqueSongs))
+```
+
+In the plot, it can be seen that the musical diversity of the Billboard top 100 declined approximately 58.82% (850 to 380 unique songs) from the mid 60s to the early 2000s.
+After that, the diversity increased again by approximately 110.53% (380 to unique 800 songs) in the last 20 years, having a downfall in the early 2010s and re-surging the following years.
+The plot shows that in the year 2020, the musical diversity of the Billboard Top 100 was only 5.88% lower (850 vs 800 unique songs) than in the mid 60s.
+
+### Part C
+
+```{r Q2 Part C, echo=FALSE, message = FALSE, warning=FALSE}
+# GET NUMBER OF WEEKS EACH UNIQUE SONG HAS APPEARED
+tenWeekHits = Billboard %>%
+  group_by(performer, song) %>%
+  summarize(count = n()) %>%
+  filter(count >= 10) # GET SONGS THAT WERE IN THE TOP 100 FOR MORE THAN 10 WEEKS
+
+# GET NUMBER OF TEN-WEEK HITS PER PERFORMER
+tenWeekPerf = tenWeekHits %>%
+  group_by(performer) %>%
+  summarize(NumTenWeekHits = n()) %>%
+  filter(NumTenWeekHits >= 30) # GET PERFORMERS WITH 30+ TEN-WEEK HITS
+```
+
+```{r echo=FALSE, message = FALSE, warning=FALSE}
+# PLOT
+ggplot(tenWeekPerf) + geom_col(aes(x = fct_reorder(performer, NumTenWeekHits), y = NumTenWeekHits)) + coord_flip()
+```
+
+After getting the songs that were in the top 100 for more than 10 weeks and getting the performers with 30+ Ten-Week Hits, Fig Q2C was created.
+The plot shows that Elton John is the performer with the most Ten Week Hits in the Billboard Top 100 since 1958, with 52 unique songs. This is 18.18% higher (44 vs 52 unique songs) than Madonna which is the second artists with more Ten Week Hits.
+
+## Question 3: Visual Story Telling Part 1: Green Buildings
+
+```{r}
+library(readxl)
+library(sjPlot)
+library(sjmisc)
+library(ggplot2)
+```
+
+```{r}
+greenbuildings <- read.csv("greenbuildings.csv")
+greenbuildings$profit <- with(greenbuildings, Rent*(leasing_rate/100))
+greenbuildings$netprofitsqft <- with(greenbuildings, profit - net*profit*Gas_Costs - net*profit*Electricity_Costs)
+greenbuildings$greenProfitsqft <- with(greenbuildings, profit*green_rating)
+greenbuildings$normalProfitsqft <-with(greenbuildings, profit*(1-green_rating))
+green <- greenbuildings$greenProfitsqft
+normal <-greenbuildings$normalProfitsqft
+medianNetProfitGreen <- median(green[green>0])
+medianNetProfitNormal <- median(normal[normal>0])
+print(paste0("The median net profit for a normal building is: ", medianNetProfitNormal))
+print(paste0("The median net profit for a green building is: ", medianNetProfitGreen))
+greenbuildingsadj <- greenbuildings[greenbuildings$greenProfitsqft != 0, ]
+normalbuildingsadj <- greenbuildings[greenbuildings$normalProfitsqft != 0, ]
+```
+
+So, on the face of it, the median profit per square feet for a Green building is 24.4337, which is higher than the median profit per square feet for a normal building is 21.3641, which means that the profit per square feet for a green building is higher than the profit per square feet for a normal building. We use median to remove outliers that might skew the data.
+
+Now, we can see whether the normal or green buildings will become more profitable. We have the median profit per sqft for green and normal, we have the minimum number of years they are expected to earn rent, and the we have the total cost of construction, and converting a building to a green one. So, we can calculate the net profit.
+
+```{r echo = FALSE}
+cost_of_green <- 100000000*1.05
+print(paste0("Cost of the Green building is: ",cost_of_green))
+cost_of_normal <- 100000000
+print(paste0("Cost of the Normal building is: ", cost_of_normal, cost_of_normal))
+net_Profit_Normal <- 21.36431*250000*30 - cost_of_normal
+print(paste0("The net profit for the normal building is: ", net_Profit_Normal))
+net_Profit_Green <- 24.43367*250000*30 - cost_of_green
+print(paste0("The net profit for the green building is: ", net_Profit_Green))
+```
+
+We see that the net profit for the green building is 78252525 over a 30-yr period. This is higher than the net profit for the normal building over a 30-yr period of 60232325. Therefore, it seems like a good investment decision to proceed with.
+
+But why is this? Could it really be that green buildings are more desirable and profitable, or could there be others factors cofounding the situation. Looking at the analysis, he takes into consideration one variable, low occupancy rates, and then looks at the median rent. We will need to adjust for factors.
+
+To illustrate the impact of how factors can skew the relationship between the building type(green or normal) on the profitability, we will graph the impact of some predictors on profitability. That is, the more of a predictor, does profitability go up or down?
+
+### Including Plots
+
+```{r echo = FALSE}
+plot(x = greenbuildings$size,
+     y=greenbuildings$netprofitsqft,
+     xlab = "Size of the building",
+     ylab = "Net Profit per Square Feet",
+     xlim = range(greenbuildings$size),
+     ylim = range(greenbuildings$netprofitsqft)
+     )
+abline(lm(netprofitsqft ~ size, data = greenbuildings ), col = "blue")
+plot(x = greenbuildings$Rent,
+     y=greenbuildings$netprofitsqft,
+     xlab = "Rent per square feet",
+     ylab = "Net Profit per Square Feet",
+     xlim = range(greenbuildings$Rent),
+     ylim = range(greenbuildings$netprofitsqft)
+     )
+abline(lm(netprofitsqft ~ Rent, data = greenbuildings ), col = "red")
+plot(x = greenbuildings$leasing_rate,
+     y=greenbuildings$netprofitsqft,
+     xlab = "Leasing Rate per Square Feet",
+     ylab = "Net Profit per Square Feet",
+     xlim = range(greenbuildings$leasing_rate),
+     ylim = range(greenbuildings$netprofitsqft)
+     )
+abline(lm(netprofitsqft ~ leasing_rate, data = greenbuildings ), col = "blue")
+plot(x = greenbuildings$Electricity_Costs,
+     y=greenbuildings$netprofitsqft,
+     xlab = "Electricity_Costs",
+     ylab = "Net Profit per Square Feet",
+     xlim = range(greenbuildings$Electricity_Costs),
+     ylim = range(greenbuildings$netprofitsqft)
+     )
+abline(lm(netprofitsqft ~ Electricity_Costs, data = greenbuildings ), col = "red")
+
+```
+
+So, we can see that the graphed predictors have some impact on the Net Profit per Square Feet, so we need to take the impact of those predictors into account to find out whether a green building is more profitable than a normal building.
+For instance, in the analysis provided, the individual removed the bottom 10% of occupancy rates. That skewed the data against Green Buildings, as we can see in the plot below:
+
+```{r echo = FALSE}
+plot(x = greenbuildings$leasing_rate,
+     y=greenbuildings$green_rating,
+     xlab = "Leasing Rate",
+     ylab = "Green Rating",
+     xlim = range(greenbuildings$leasing_rate),
+     ylim = range(greenbuildings$green_rating)
+     )
+abline(lm(green_rating ~ leasing_rate, data = greenbuildings ), col = "red")
+```
+
+Areas with higher leasing rates were more likely to have a Green Rating than buildings with lower leasing rates. Removing lower buildings with occupancy rates below 10% skewed the data against Green Ratings, by removing some low performing buildings which were disproportionately normal and not Green. This is an example of the impact that predictors can have on the stated performance of Green vs Normal. We can adjust by doing our analysis on a narrow slice of buildings with very similar occupancy rates, rather than excluding a small subsection and keeping the rest. This can also be done for all of the different variables.
+
+For instance, we are going to adjust for size and leasing rate, and compare net profit per square ft for green and normal buildings. So, if a building has a similar size and occupancy rate, will it have a higher profit per sqft if it was green rather than normal?
+
+```{r echo = FALSE}
+fit<- lm(greenProfitsqft ~ size + leasing_rate , data = greenbuildingsadj)
+plot_model(fit, type = "pred", terms = c("size", "leasing_rate"))
+fit<- lm(normalProfitsqft ~ size + leasing_rate , data = normalbuildingsadj)
+plot_model(fit, type = "pred", terms = c("size", "leasing_rate"))
+```
+
+Shockingly, we can see that for similar size and leasing rates, normal buildings actually have higher profit per sqft than green buildings. That means that perhaps there are cofounding variables that impact net profit per sqft that mask the fact that normal buildings are actually more profitable than green buildings. Or it could be that there are other variables that we are not taking into account, that if accounted for, could show green buildings as more profitable overall. Regardless, it is clear that the analysis that the analyst did is insufficient.
+
+## Question 4: Visual Story Telling Part 2: Capital Metro
+
+```{r}
+library(tidyverse)
+library(gridExtra)
+
+# Get data
+metroData <- read.csv('capmetro_UT.csv')
+```
+
+```{r}
+# PLOT
+# The following webpage was reviewed: https://stackoverflow.com/questions/1249548/side-by-side-plots-with-ggplot2
+by_hourly_temp = metroData %>%
+  group_by(hour_of_day) %>%
+  summarize(count = n(),
+            mean_boarding = mean(boarding, na.rm=TRUE),
+            mean_temperature = mean(temperature, na.rm=TRUE))
+scaledTemp <- scale(by_hourly_temp$mean_temperature)*sd(by_hourly_temp$mean_boarding)
+dayTemp <- ggplot(by_hourly_temp) + geom_col(aes(x=factor(hour_of_day), y=mean_temperature)) + ylab("Avg Temperature") + xlab("Hour of Day")
+dayBoard <- ggplot(by_hourly_temp) + geom_col(aes(x=factor(hour_of_day), y=mean_boarding)) + ylab("Avg Boarding") + xlab("Hour of Day")
+grid.arrange(dayTemp, dayBoard,  ncol=2)
+```
+Bar plot of average boarding through the hour of day. The plot shows that more people board the Capital Metro transport system when the temperature is higher
+
+```{r}
+# PLOT
+by_monthly_temp = metroData %>%
+  group_by(month) %>%
+  summarize(count = n(),
+            mean_boarding = mean(boarding, na.rm=TRUE),
+            mean_temperature = mean(temperature, na.rm=TRUE))
+scaledTemp <- scale(by_monthly_temp$mean_temperature)*sd(by_monthly_temp$mean_boarding)
+dayTemp <- ggplot(by_monthly_temp) + geom_col(aes(x=factor(month, levels=c("Sep", "Oct", "Nov")), y=mean_temperature)) + ylab("Avg Temperature") + xlab("Months")
+dayBoard <- ggplot(by_monthly_temp) + geom_col(aes(x=factor(month, levels=c("Sep", "Oct", "Nov")), y=mean_boarding)) + ylab("Avg Boarding") + xlab("Months")
+grid.arrange(dayTemp, dayBoard,  ncol=2)
+```
+Bar plot of average boarding through the months. The plot shows that even though the average temperature lowers from Sep to Oct and from Oct to Nov, the average number of people boarding the public transport system increases 11.4% (98,530 to 109,767 boardings) from Sep to Oct and lowers 16.45% (109,767 to 91,707) from Oct to Nov.
+
+```{r}
+# PLOT
+# Compare average boarding through the hours of day in different months
+# Group by month and hour of the day
+by_monthly_hourDay = metroData %>%
+  group_by(month, hour_of_day) %>%
+  summarize(count = n(),
+            mean_boarding = mean(boarding, na.rm=TRUE)) %>%
+  filter(hour_of_day == 6 | hour_of_day == 11 | hour_of_day == 16 | hour_of_day == 21)
+# Plotting
+ggplot(by_monthly_hourDay) +
+  geom_col(aes(x=factor(month, levels=c("Sep", "Oct", "Nov")), y=mean_boarding)) + facet_wrap(~hour_of_day) + xlab("Month") + ylab("Avg Boarding")
+```
+Average boarding through the hours of day in different months. Tha graphs show that in the afternoon more people board the Capital Metro transport system and that early morning is when less people use the transport system.
+
+In a day to day basis, people prefer to board the Capitol Metro Transport System when the temperature is higher. However, in the bigger picture, as the temperature lowers, more people use the transport system. November, seems to have lower number of boardings, but this may be so because of Thanksgiving break, when students go away for a week.
+
+## Question 5: Portfolio Modeling
+
+```{r}
+library(mosaic)
+library(quantmod)
+library(foreach)
+```
+
+### Portfolio 1:
+
+We have decided to use 5 very different ETFs for this problem, they are listed and imported below:
+This portfolio consists of primarily safe and risk-averse ETFS.
+
+SPY: SPDR S&P 500 ETF Trust
+
+HYG: iShares iBoxx $ High Yield Corporate Bond ETF
+
+DBA: Invesco DB Agriculture Fund
+
+UVXY: ProShares Ultra VIX Short-Term Futures ETF
+
+FXE: Invesco CurrencyShares Euro Trust
+
+```{r}
+mystocks = c("SPY", "HYG", "DBA", "UVXY", "FXE")
+getSymbols(mystocks)
+```
+
+Adjust for splits and dividends
+Now that the data has been adjusted for splits and dividends, the following graphs display the close-to-close changes for each of the ETFs in our portfolio.
+
+```{r}
+SPYa = adjustOHLC(SPY)
+HYGa = adjustOHLC(HYG)
+DBAa = adjustOHLC(DBA)
+UVXYa = adjustOHLC(UVXY)
+FXEa = adjustOHLC(FXE)
+
+plot(ClCl(SPYa))
+plot(ClCl(HYGa))
+plot(ClCl(DBAa))
+plot(ClCl(UVXYa))
+plot(ClCl(FXEa))
+```
+
+Combine close to close changes in a single matrix
+Omit all NA in each set so all ETFS start at the same date
+Once we have found a common start date for the portfolio and got rid of NA values, we are now able to use the pairs function to show the correlation between each of the ETFs in our portfolio.
+
+```{r}
+all_returns = cbind(ClCl(SPYa), ClCl(HYGa), ClCl(DBAa), ClCl(UVXYa), ClCl(FXEa))
+head(all_returns)
+
+all_returns = as.matrix(na.omit(all_returns))
+N = nrow(all_returns)
+head(all_returns)
+
+pairs(all_returns)
+```
+
+Begin bootstrap approach:
+
+Sample random return from the empirical joint distribution
+This simulates a random day
+Update the value of the holdings to be equal weighted
+Since we chose 5 ETFS each one will have a weight of 20%
+Compute our new total wealth
+Now we will loop over 4 trading weeks, or 20 trading days using the same logic as mapped out above.
+The graph below shows the average of the 5000 trading simulations over the 20 day time frame as indicated by the question. We can see that this portfolio had an average value of 92010.53
+
+```{r}
+set.seed(1)
+return.today = resample(all_returns, 1, orig.ids = FALSE)
+
+total_wealth = 100000
+
+ETF_weights = c(0.2, 0.2, 0.2, 0.2, 0.2)
+
+holdings = total_wealth * ETF_weights
+holdings = holdings*(1 + return.today)
+
+
+total_wealth = sum(holdings)
+
+initial_wealth = 100000
+simulation = foreach(i = 1:5000, .combine = 'rbind') %do% {
+  total_wealth = initial_wealth
+ETF_weights = c(0.2, 0.2, 0.2, 0.2, 0.2)
+holdings = total_wealth * ETF_weights
+holdings = holdings*(1 + return.today)
+n_days = 20
+wealth_tracker = rep(0, n_days)
+for(today in 1:n_days) {
+  return.today = resample(all_returns, 1, orig.ids = FALSE)
+  holdings = holdings + holdings * return.today
+  total_wealth = sum(holdings)
+  wealth_tracker[today] = total_wealth
+  }
+  wealth_tracker
+}
+total_wealth
+plot(wealth_tracker, type = 'l')
+
+```
+
+Below is a distribution of each of the 5000 runs with respect to the final portfolio value after each run.
+
+```{r}
+head(simulation)
+hist(simulation[,n_days], 25)
+```
+
+Below is a profit/loss distribution for each of the simulated 5000 portfolios over the 20 day trading span.
+
+```{r}
+set.seed(1)
+mean(simulation[,n_days])
+mean(simulation[,n_days] - initial_wealth)
+hist(simulation[,n_days] - initial_wealth, breaks = 30)
+
+```
+
+The 5% value at risk for this portfolio is 15756.17
+
+```{r}
+set.seed(1)
+quantile(simulation[, n_days] - initial_wealth, prob = 0.05)
+```
+
+#### Portfolio 1 Summary and Findings
+
+This portfolio consists of 5 equal-weighted ETFS as listed below:
+
+SPY: SPDR S&P 500 ETF Trust
+
+HYG: iShares iBoxx $ High Yield Corporate Bond ETF
+
+DBA: Invesco DB Agriculture Fund
+
+UVXY: ProShares Ultra VIX Short-Term Futures ETF
+
+FXE: Invesco CurrencyShares Euro Trust
+
+After analyzing our portfolio, we found the 5% VAR to be $15756.17. This value quantifies the extent of possible financial losses for our portfolio over the 20 trading day period simulation. For this particular instance of the simulation, the ending value of our portfolio was 92010.53 dollars.
+
+### Portfolio 2
+
+We have decided to use 5 very aggressive  ETFs for this problem, they are listed and imported below:
+This portfolio consists of risky and levered equity ETFs.
+
+SOXL: Direxion Daily Semiconductor Bull 3x Shares
+
+ROM: ProShares Utlra Technology
+
+DPST: Direxion Daily Regional Banks Bull 3x Shares
+
+DRN: Direxion Daily Real Estate Bull 3x Shares
+
+UCO: ProShares Ultra Bloomberg Crude Oil
+
+```{r}
+mystocks_2 = c("SOXL", "ROM", "DPST", "DRN", "UCO")
+getSymbols(mystocks_2)
+```
+
+Adjust for splits and dividends
+
+Now that the data has been adjusted for splits and dividends, the following graphs display the close-to-close changes
+for each of the ETFs in our portfolio.
+
+```{r, warning=FALSE}
+SOXLa = adjustOHLC(SOXL)
+ROMa = adjustOHLC(ROM)
+DPSTa = adjustOHLC(DPST)
+DRNa = adjustOHLC(DRN)
+UCOa = adjustOHLC(UCO)
+
+plot(ClCl(SOXLa))
+plot(ClCl(ROMa))
+plot(ClCl(DPSTa))
+plot(ClCl(DRNa))
+plot(ClCl(UCOa))
+```
+
+Combine close to close changes in a single matrix
+Omit all NA in each set so all ETFS start at the same date
+Once we have found a common start date for the portfolio and got rid of NA values, we are now able to use the pairs function to show the correlation between each of the ETFs in our portfolio.
+
+```{r}
+all_returns_2 = cbind(ClCl(SOXLa), ClCl(ROMa), ClCl(DPSTa), ClCl(DRNa), ClCl(UCOa))
+head(all_returns_2)
+all_returns_2 = as.matrix(na.omit(all_returns_2))
+N = nrow(all_returns_2)
+
+
+pairs(all_returns_2)
+```
+
+Begin bootstrap approach:
+
+Sample a random return from the empirical joint distribution
+This simulates a random day
+Update the value of the holdings to be equal weighted
+Since we chose 5 ETFS each one will have a weight of 20%
+Compute our new total wealth
+Now we will loop over 4 trading weeks, or 20 trading days using the same logic as mapped out above.
+The graph below shows the average of the 5000 trading simulations over the 20 day time frame as indicated by the question. We can see that this portfolio had an average value of 120756.5.
+
+```{r}
+set.seed(1)
+return.today.2 = resample(all_returns_2, 1, orig.ids = FALSE)
+
+total_wealth_2 = 100000
+
+ETF_weights = c(0.2, 0.2, 0.2, 0.2, 0.2)
+
+holdings_2 = total_wealth * ETF_weights
+holdings_2 = holdings_2*(1 + return.today.2)
+
+
+total_wealth_2 = sum(holdings_2)
+
+
+initial_wealth_2 = 100000
+simulation_2 = foreach(i = 1:5000, .combine = 'rbind') %do% {
+  total_wealth_2 = initial_wealth_2
+ETF_weights = c(0.2, 0.2, 0.2, 0.2, 0.2)
+holdings_2 = total_wealth * ETF_weights
+holdings_2 = holdings_2*(1 + return.today.2)
+n_days = 20
+wealth_tracker_2 = rep(0, n_days)
+for(today in 1:n_days) {
+  return.today.2 = resample(all_returns_2, 1, orig.ids = FALSE)
+  holdings_2 = holdings_2 + holdings_2 * return.today.2
+  total_wealth_2 = sum(holdings_2)
+  wealth_tracker_2[today] = total_wealth_2
+  }
+  wealth_tracker_2
+}
+total_wealth_2
+plot(wealth_tracker_2, type = 'l')
+
+```
+
+Below is a distribution of each of the 5000 runs with respect to the final portfolio value after each run
+
+```{r}
+hist(simulation_2[,n_days], xlim = c(50000,150000), breaks = 100)
+```
+
+Graph of profit/loss for each simulation run
+
+```{r}
+mean(simulation_2[,n_days])
+mean(simulation_2[,n_days] - initial_wealth_2)
+hist(simulation_2[,n_days] - initial_wealth_2, breaks = 30)
+```
+
+The 5% value at risk for this portfolio is 30769.97.
+
+```{r}
+set.seed(1)
+quantile(simulation_2[, n_days] - initial_wealth_2, prob = 0.05)
+```
+
+##### Portfolio 2 Summary and Findings
+
+This portfolio consists of 5 equal-weighted ETFS as listed below:
+
+SOXL: Direxion Daily Semiconductor Bull 3x Shares
+
+ROM: ProShares Utlra Technology
+
+DPST: Direxion Daily Regional Banks Bull 3x Shares
+
+DRN: Direxion Daily Real Estate Bull 3x Shares
+
+UCO: ProShares Ultra Bloomberg Crude Oil
+
+
+After analyzing our portfolio, we found the 5% VAR to be $30.769.97. This value quantifies the extent of possible financial losses for our portfolio over the 20 trading day period simulation. For this particular instance of the simulation, the ending value of our portfolio was 101002.4 dollars.
+
+We have decided to use 5 very aggressive ETFs for this problem, so it makes more sense as to why the VAR for this portfolio is much higher than the VAR for portfolio 1, which consists of safer and more stable ETFs.
+
+
+### Portfolio 3
+
+We have decided to use 5 very aggressive  ETFs for this problem, they are listed and imported below:
+For this portfolio, we have decided to use primarily global real estate and global large cap ETFs.
+
+VNQI: Vanguard Global ex-US Real Estate ETF
+
+EWJ: iShares MSCI Japan ETF
+
+SCHF: Schwab International Equity ETF
+
+RJN: Elements Rogers International Commodity Index-Energy Total Return ETN
+
+HDEF: Xtrackers MSCI EAFE High Dividend Yield Equity ETF
+
+
+```{r}
+mystocks_3 = c("VNQI", "EWJ", "SCHF", "RJN", "HDEF")
+getSymbols(mystocks_3)
+```
+
+Adjust for splits and dividends
+Now that the data has been adjusted for splits and dividends, the following graphs display the close-to-close changes
+for each of the ETFs in our portfolio.
+
+```{r}
+VNQIa = adjustOHLC(VNQI)
+EWJa = adjustOHLC(EWJ)
+SCHFa = adjustOHLC(SCHF)
+RJNa = adjustOHLC(RJN)
+HDEFa = adjustOHLC(HDEF)
+
+plot(ClCl(VNQIa))
+plot(ClCl(EWJa))
+plot(ClCl(SCHFa))
+plot(ClCl(RJNa))
+plot(ClCl(HDEFa))
+```
+
+Combine close to close changes in a single matrix
+Omit all NA in each set so all ETFS start at the same date
+Once we have found a common start date for the portfolio and got rid of NA values, we are now able to use the pairs function to show the correlation between each of the ETFs in our portfolio.
+
+```{r}
+all_returns_3 = cbind(ClCl(VNQIa), ClCl(EWJa), ClCl(SCHFa), ClCl(RJNa), ClCl(HDEFa))
+head(all_returns_3)
+
+all_returns_3 = as.matrix(na.omit(all_returns_3))
+N = nrow(all_returns_3)
+
+pairs(all_returns_3)
+```
+
+
+Begin bootstrap approach:
+
+Sample a random return from the empirical joint distribution
+This simulates a random day
+Update the value of the holdings to be equal weighted
+Since we chose 5 ETFS each one will have a weight of 20%
+Compute our new total wealth
+Now we will loop over 4 trading weeks, or 20 trading days using the same logic as mapped out above.
+The graph below shows the average of the 5000 trading simulations over the 20 day time frame as indicated by the question. We can see that this portfolio had an average value of 88628.86.
+
+```{r}
+set.seed(1)
+return.today.3 = resample(all_returns_3, 1, orig.ids = FALSE)
+
+total_wealth_3 = 100000
+
+ETF_weights = c(0.2, 0.2, 0.2, 0.2, 0.2)
+
+holdings_3 = total_wealth * ETF_weights
+holdings_3 = holdings_2*(1 + return.today.2)
+
+
+total_wealth_3 = sum(holdings_3)
+
+
+initial_wealth_3 = 100000
+simulation_3 = foreach(i = 1:5000, .combine = 'rbind') %do% {
+  total_wealth_3 = initial_wealth_3
+ETF_weights = c(0.2, 0.2, 0.2, 0.2, 0.2)
+holdings_3 = total_wealth * ETF_weights
+holdings_3 = holdings_3*(1 + return.today.3)
+n_days = 20
+wealth_tracker_3 = rep(0, n_days)
+for(today in 1:n_days) {
+  return.today.3 = resample(all_returns_3, 1, orig.ids = FALSE)
+  holdings_3 = holdings_3 + holdings_3 * return.today.3
+  total_wealth_3 = sum(holdings_3)
+  wealth_tracker_3[today] = total_wealth_3
+  }
+  wealth_tracker_3
+}
+total_wealth_3
+plot(wealth_tracker_3, type = 'l')
+
+```
+
+Below is a distribution of each of the 5000 runs with respect to the final portfolio value after each run
+
+```{r}
+hist(simulation_3[,n_days], xlim = c(50000,150000), breaks = 25)
+```
+
+
+Graph of profit/loss for each simulation run
+
+```{r}
+mean(simulation_3[,n_days])
+mean(simulation_3[,n_days] - initial_wealth_3)
+hist(simulation_3[,n_days] - initial_wealth_3, breaks = 30)
+```
+
+The 5% value at risk for this portfolio is 16086.42
+
+```{r}
+set.seed(1)
+quantile(simulation_3[, n_days] - initial_wealth_3, prob = 0.05)
+```
+
+##### Portfolio 3 Summary and Findings
+
+This portfolio consists of 5 equal-weighted ETFS as listed below:
+
+VNQI: Vanguard Global ex-US Real Estate ETF
+
+EWJ: iShares MSCI Japan ETF
+
+SCHF: Schwab International Equity ETF
+
+RJN: Elements Rogers International Commodity Index-Energy Total Return ETN
+
+HDEF: Xtrackers MSCI EAFE High Dividend Yield Equity ETF
+
+After analyzing our portfolio, we found the 5% VAR to be $16,086.42. This value quantifies the extent of possible financial losses for our portfolio over the 20 trading day period simulation. For this particular instance of the simulation, the ending value of our portfolio was 91925.6 dollars.
+
+For this portfolio, we have decided to use primarily global real estate and global large cap ETFs to simulate other market conditions and economic factors spanning outside the United States.
+
+## Question 6: Clustering and PCA
+
+```{r}
+wineData <- read.csv('wine.csv')
+head(wineData)
+summary(wineData)
+```
+
+```{r}
+# Center and scale the data
+X = wineData[,(1:11)]
+wineScaled = scale(X, center=TRUE, scale=TRUE)
+
+# Create the matrix with Euclidean distances
+distMatrix_wines = dist(wineScaled, method='euclidean')
+```
+
+After centering and scaling the data and creating the matrix with Euclidean distances. Different hierarchical methods were tested.
+
+#### Hierarchical Clustering
+
+##### Minimum
+```{r Q6 Hierarchical Clustering Minimum, echo=FALSE, message = FALSE, warning=FALSE, results = TRUE}
+# Test to see if min, max or average should be use:
+# Hierarchical clustering MIN
+hMin = hclust(distMatrix_wines, method='single')
+hMin
+```
+
+##### Maximum
+```{r Q6 Hierarchical Clustering Maximum, echo=FALSE, message = FALSE, warning=FALSE, results = TRUE}
+# Hierarchical clustering MAX
+hMax = hclust(distMatrix_wines, method='complete')
+hMax
+```
+
+##### Average
+```{r Q6 Hierarchical Clustering Average, echo=FALSE, message = FALSE, warning=FALSE, results = TRUE}
+# Hierarchical clustering AVERAGE
+hAvg = hclust(distMatrix_wines, method='average')
+hAvg
+```
+
+##### Centroid
+```{r Q6 Hierarchical Clustering Centroid, echo=FALSE, message = FALSE, warning=FALSE, results = TRUE}
+# Hierarchical clustering CENTROID
+hCent = hclust(distMatrix_wines, method='centroid')
+hCent
+```
+
+#### Cutting the trees into clusters
+
+##### Minimum
+```{r Q6 Tree Cutting Minimum, results = TRUE, echo=FALSE, message = FALSE, warning=FALSE}
+# Cut the tree into 5 clusters:
+# Cut Clusters MIN
+clusterMin = cutree(hMin, k=3)
+summary(factor(clusterMin))
+# Examine the cluster members
+#which(clusterMin == 1)
+#which(clusterMin == 2)
+#which(clusterMin == 3)
+#' NOT GOOD BECAUSE ONE CLUSTER HAS 6,493 POINTS AND THE OTHERS HAVE 1
+```
+
+This method was not useful because one cluster has 6,493 points and the others have 1 point.
+
+##### Maximum
+```{r Q6 Tree Cutting Maximum, results = TRUE, echo=FALSE, message = FALSE, warning=FALSE}
+# Cut Clusters MAX
+clusterMax = cutree(hMax, k=3)
+summary(factor(clusterMax))
+# Examine the cluster members
+# which(clusterMax == 1)
+# which(clusterMax == 2)
+# which(clusterMax == 3)
+#' BETTER THAN USING MIN, BUT NOT GOOD BECAUSE ONE CLUSTER HAS 6,469 POINTS AND THE OTHERS HAVE LESS THAN 25
+```
+Better than using the Minimum, but not good enough because one cluster has 6,469 points and the others have less than 25.
+
+##### Average
+```{r Q6 Tree Cutting Average, results = TRUE, echo=FALSE, message = FALSE, warning=FALSE}
+# Cut Clusters AVERAGE
+clusterAvg = cutree(hAvg, k=5)
+summary(factor(clusterAvg))
+# Examine the cluster members
+# which(clusterAvg == 1)
+# which(clusterAvg == 2)
+# which(clusterAvg == 3)
+#' BETTER THAN USING MIN OR MAX, BUT NOT GOOD BECAUSE ONE CLUSTER HAS 6,464 POINTS AND THE OTHERS HAVE 25 OR LESS
+```
+Better than using the Minimum or Maximum, but not good enough because one cluster has 6,464 points and the others have 25 or less.
+
+##### Centroid
+```{r Q6 Tree Cutting Centroid, results = TRUE, echo=FALSE, message = FALSE, warning=FALSE}
+# Cut Clusters CENTROID
+clusterCent = cutree(hCent, k=3)
+summary(factor(clusterCent))
+clusterCent = cutree(hCent, k=5)
+summary(factor(clusterCent))
+# Examine the cluster members
+# which(cluster1 == 1)
+# which(cluster1 == 2)
+# which(cluster1 == 3)
+#' NOT GOOD BECAUSE THREE CLUSTERS HAVE 1 POINT EACH.
+```
+Not good enough because three of the clusters have one point each.
+
+### PCA
+```{r Q6 PCA set up, echo=FALSE, results = TRUE, message = FALSE, warning=FALSE}
+library(tidyverse)
+library(ggplot2)
+
+# Center and scale the data
+X = wineData[,(1:11)]
+wineScaled = scale(X, center=TRUE, scale=TRUE)
+
+# PCA of the (average) properties of the wines.  
+winePCA = prcomp(wineScaled, scale=TRUE)
+```
+
+After centering and scaling the data and setting up the PCA of the properties of the wines, a variance plot was created.
+
+```{r Fig1 Q6, echo=FALSE, results =TRUE, message = FALSE, warning=FALSE}
+plot(winePCA)
+```
+
+```{r Q6 PCA variance summary, results = TRUE, echo=FALSE, message = FALSE, warning=FALSE}
+summary(winePCA)
+# Setting up the "ingredients" of the PCA
+wineLoadings = winePCA$rotation
+# Setting up the "amounts" of the PCA
+wineScores = winePCA$x
+```
+
+Cumulative Proportion: The first 5 models account for 79.73% of the variation.
+
+```{r Fig2 Q6, echo=FALSE, results = TRUE, message = FALSE, warning=FALSE}
+qplot(wineScores[,1], wineScores[,2], color=wineData$color, xlab='Component 1', ylab='Component 2')
+```
+
+It can be seen that the principal component 1 is dividing wines into red and white.
+
+```{r Fig3 Q6, echo=FALSE, , results = TRUE, message = FALSE, warning=FALSE}
+qplot(wineScores[,1], wineScores[,2], color=wineData$alcohol, xlab='Component 1', ylab='Component 2')
+```
+
+It can be seen that the principal component 2 is dividing wines by alcohol level.
+
+```{r Fig4 Q6, echo=FALSE, results = TRUE, message = FALSE, warning=FALSE}
+qplot(wineScores[,2], wineScores[,3], color=wineData$pH, xlab='Component 2', ylab='Component 3')
+```
+
+It can be seen that the principal component 3 is dividing wines by pH.
+
+#### Ordering Loadings
+
+#### PC1
+
+
+Getting the top 2 most positive chemical properties in PC1. This are the White Wine chemical properties:
+```{r Q6 Order Loadings1, results = TRUE, echo=FALSE, message = FALSE, warning=FALSE}
+o1 = order(wineLoadings[,1], decreasing=TRUE)
+# cat("Getting the top 2 most positive chemical properties in PC1. This are the White Wine chemical properties:")
+colnames(wineScaled)[head(o1,2)] # GETTING TOP 2 (THE MOST POSITIVE IN THE COMPONENT 1), GET THE WHITE WINE CHEMICAL PROPRTIES
+```
+
+Getting the top 2 most negative chemical properties in PC1. This are the Red Wine chemical properties:
+```{r}
+# cat("Getting the top 2 most negative chemical properties in PC1. This are the Red Wine chemical properties:")
+colnames(wineScaled)[tail(o1,2)] # GETTING BOTTOM 2 (THE MOST NEGATIVE IN THE COMPONENT 1), GET THE WHITE RED CHEMICAL PROPRTIES
+```
+
+#### PC2
+
+
+Getting the top 2 most positive chemical properties in PC2. This are the chemical properties of the lower alcohol levels:
+```{r Q6 Order Loadings2, results = TRUE, echo=FALSE, message = FALSE, warning=FALSE}
+o2 = order(wineLoadings[,2], decreasing=TRUE)
+# cat("Getting the top 2 most positive chemical properties in PC2. This are the chemical properties of the lower alcohol levels:")
+colnames(wineScaled)[head(o2,2)] # GETTING TOP 2 (THE MOST POSITIVE IN THE COMPONENT 2), GET THE TOP PROPERTIES OF LOWER ALCOHOL LEVELS
+```
+
+Getting the top 2 most negative chemical properties in PC2. This are the chemical properties of the higher alcohol levels:
+```{r}
+# cat("Getting the top 2 most negative chemical properties in PC2. This are the chemical properties of the higher alcohol levels:")
+colnames(wineScaled)[tail(o2,2)] # GETTING BOTTOM 25 (THE MOST NEGATIVE IN THE COMPONENT 2), GET THE TOP PROPERTIES OF HIGH ALCOHOL LEVELS
+```
+
+#### PC3
+
+Getting the top 2 most positive chemical properties in PC2. This are the chemical properties of high pH levels:
+```{r Q6 Order Loadings3, results = TRUE, echo=FALSE, message = FALSE, warning=FALSE}
+o3 = order(wineLoadings[,3], decreasing=TRUE)
+# cat("Getting the top 2 most positive chemical properties in PC2. This are the chemical properties of high pH levels:")
+colnames(wineScaled)[head(o3,2)] # GETTING TOP 2 (THE MOST POSITIVE IN THE COMPONENT 3), GET THE TOP PROPERTIES OF HIGH pH LEVELS
+```
+
+Getting the top 2 most negative chemical properties in PC2. This are the chemical properties of low pH levels:
+```{r}
+# cat("Getting the top 2 most negative chemical properties in PC2. This are the chemical properties of low pH levels:")
+colnames(wineScaled)[tail(o3,2)] # GETTING TOP 2 (THE MOST POSITIVE IN THE COMPONENT 3), GET THE TOP PROPERTIES OF LOW pH LEVELS
+```
+
+It can be seen that in this case, the PCA algorithm works better for a dimensionality reduction. With PC1 it can be differentiated between red and white wines.
+
+## Question 7: Market Segmentation
+
+```{r}
+library(ggplot2)
+library(factoextra)
+library(ggthemes)
+library(reshape2)
+library(RCurl)
+library(foreach)
+library(fpc)
+library(cluster)
+```
+
+Below is the initial correlation between all categories before we alter and clean the data set.
+
+```{r}
+social_marketing = read.csv("social_marketing.csv")
+ggcorrplot::ggcorrplot(cor(social_marketing[c(2:37)]))
+```
+
+Trends observed from the correlation plot:
+personal_fitness and health_nutrition seem to have a strong positive correlation
+beauty and fashion are seen to have a positive correlation
+travel and small_business have a slight positive correlation
+
+Given the description of the plethora of twitter bots on the platform, we decided to remove the "spam" and "adult" columns from our data set
+Furthermore, we reviewed the "uncategorized" label as well as the "chatter" categories from our set due to the fact that we fill these unspecified tweets will provide minimal context and accuracy to our analysis
+Once we have cleaned and accounted for all columns in which we do not want for our analysis, we then cleaned and scaled the data:
+
+```{r}
+social_marketing$spam <- NULL
+social_marketing$adult <- NULL
+
+social_marketing$uncategorized <- NULL
+social_marketing$chatter <- NULL
+
+cleaned_data = social_marketing[,(2:33)]
+cleaned_data = scale(cleaned_data, center = TRUE, scale = TRUE)
+```
+
+Now we will extract the centers and scales from the newly rescaled data set
+
+```{r}
+mu = attr(cleaned_data,"scaled:center")
+sigma = attr(cleaned_data,"scaled:scale")
+```
+
+We will perform k-means clustering on our data set to see the different clusters of market segmentation in our data set.
+The elbow curve is displayed below to determine the optimal amount of clusters
+
+```{r}
+set.seed(1)
+elbow = fviz_nbclust(cleaned_data, kmeans, method = 'wss')
+```
+
+We have decided to proceed with 4 clusters and use that to see if we can find any info about the market segementation per tweet.
+
+```{r}
+set.seed(6)
+
+clusters_6 = kmeans(cleaned_data, 4, nstart = 50)
+
+clusters_6_plot = fviz_cluster(
+  clusters_6, data = cleaned_data,
+  ellipse.type = 'euclid',
+  ggtheme = theme_classic(),
+  geom = c('point'))
+clusters_6_plot
+```
+
+```{r}
+clust_results = aggregate(cleaned_data, by = list(cluster = clusters_6$cluster), mean)
+
+t_clust_results = t(clust_results)
+colnames(t_clust_results) = rownames(clust_results)
+rownames(t_clust_results) = colnames(clust_results)
+
+t_clust_results
+```
+
+From this final table of t_clust_results we are able to now observe a distinct set of words/categories for each cluster based on the mean of other categories and how they vary across different clusters. If we look in to the t_clust_results table, we are able to see that each of the 4 clusters has personalized attributes affiliated with each of them.
+
+For example in cluster 3, some of the highest categories include 'outdoors','personal fitness', and 'health nutrition'. These categories make it clear that most of the tweets in cluster 3 have to do with fitness, exercising, and enjoying the outdoors.
+
+Furthermore in cluster 2, some of the highest categories include 'school','parenting','religion', and 'food'. These categories indicate that the tweets in cluster 2 have to do more with food, culture, and education, all topics that are important to most families.
+
+## Question 8: The Reuters Corpus
+
+```{r}
+library(tm)
+library(tidyverse)
+library(slam)
+library(proxy)
+library(RColorBrewer)
+```
+
+### Question
+
+Similar to our example in class, we hope to dissect an author's documents and try our best to group them by their contents. More specifically, we'd like to answer the question of what terms appear most frequently in author Heather Scoffield's documents, as well as how related these documents are in space.
+
+### Approach
+
+To answer this question, we will start by reading each of Heather Scoffield's documents into a file list. To make interpretation and recognition easier, we can clean up the original document names and applied them to the file list. We then plan to follow general tokenization steps, such as removing numbers, punctuation, white spaces, and common stop words. This whole process ensures we are analyzing relevant data and removes unnecessary words from each document.
+
+```{r}
+#copy reader functions
+readerPlain <- function(fname){
+  readPlain(elem = list(content = readLines(fname)),
+            id = fname, language = 'en') }
+
+#apply to Heather Scoffield's documents
+file_list <-  Sys.glob('ReutersC50/C50train/HeatherScoffield/*.txt')
+heather <- lapply(file_list, readerPlain)
+
+#clean up file names
+head(file_list)
+
+new_names <- file_list %>%
+  {strsplit(., '/', fixed = TRUE)} %>%
+  {lapply(., tail, n = 2)} %>%
+  {lapply(., paste0, collapse = '')} %>%
+  unlist
+
+#rename documents
+names(heather) <- new_names
+head(heather, 3)
+
+#create text mining corpus
+documents_raw <- Corpus(VectorSource(heather))
+
+##tokenization steps (get relevant words from each document)
+
+#begin by formatting all to lower case, removing numbers and punctuation
+my_docs <- documents_raw
+my_docs <- tm_map(my_docs, content_transformer(tolower))
+my_docs <- tm_map(my_docs, content_transformer(removeNumbers))
+my_docs <- tm_map(my_docs, content_transformer(removePunctuation))
+my_docs <- tm_map(my_docs, content_transformer(stripWhitespace))
+
+#now remove stop words
+my_docs = tm_map(my_docs, content_transformer(removeWords), stopwords("en"))
+```
+
+The next step is to create a document-term matrix (DTM), which contains the frequency of terms in each of the documents. The corresponding inverse document frequency (IDF) assigns higher weights to uncommon terms across the corpus as a whole. Finally, a term frequency-inverse document frequency (TF-IDF) will be obtained by combining the DTM and IDF.
+
+```{r}
+#create DTM
+DTM_heather <- DocumentTermMatrix(my_docs)
+
+#remove words that rarely occur in doc
+DTM_heather <- removeSparseTerms(DTM_heather, 0.95)
+DTM_heather
+
+#create TF IDF weights
+tfidf_heather = weightTfIdf(DTM_heather)
+```
+
+Finally, we will perform principal component analysis (PCA) to see if we can summarize each document within the corpus given its qualities. Additionally, we will perform clustering of the documents to see which ones are most similar.
+
+```{r}
+X = as.matrix(tfidf_heather)
+summary(colSums(X))
+scrub_cols = which(colSums(X) == 0)
+X = X[, -scrub_cols]
+
+pca_heather = prcomp(X, rank = 2, scale = TRUE)
+```
+
+### Results
+
+After completing PCA, we have summarized each document in the corpus into a single pair of values in the real coordinate space. In the plot below, we can see that we were able to maintain a majority of the variation between documents within the first 2 principal components. Words that appeared 75 or more times within the DTM are listed below. Furthermore, examining the loadings will give us an idea of which words have the strongest influence on each component.
+
+```{r, results = TRUE}
+plot(pca_heather,
+     main = 'PCA Component Plot',
+     xlab = 'Component',
+     col = brewer.pal(9, 'YlGn')
+     )
+
+#let's see the most reoccurring words
+findFreqTerms(DTM_heather, 75)
+
+#examine loadings
+pca_heather$rotation[order(abs(pca_heather$rotation[, 1]), decreasing = TRUE), 1][1:10]
+pca_heather$rotation[order(abs(pca_heather$rotation[, 2]), decreasing = TRUE), 2][1:10]
+```
+
+Now we can examine the magnitude of the first 2 principal components for each document. Furthermore, we can see how the documents were placed in the real coordinate space and try to see what qualities they have. From the plot below, we can see that documents 32, 33, and 34 share similar characteristics, as well as documents 17 and 18. Let's try and get a summary of their content.
+
+```{r, results = TRUE}
+#look at first 2 PCs
+head(pca_heather$x[, 1:2], 10)
+
+#plot each document in real coordinate space
+plot(pca_heather$x[, 1:2], xlab = 'PCA 1', ylab = 'PCA 2', bty = 'n', type = 'n')
+text(pca_heather$x[, 1:2], labels = 1:length(heather), cex = 0.7)
+```
+
+```{r, echo = TRUE, results = TRUE}
+#view first group of docs
+content(heather[[32]])[1:3]
+content(heather[[33]])[1:3]
+content(heather[[34]])[1:3]
+```
+
+Documents 32, 33, and 34 discuss a business deal between Bre-X Minerals Ltd, Barrick Gold Corp., and Indonesia's Busang gold deposits. These documents appear to be recording relevant updates between mining companies and the Indonesian government.
+
+```{r, echo = TRUE, results = TRUE}
+#view second group of docs
+content(heather[[17]])[1:3]
+content(heather[[18]])[1:3]
+```
+
+Alternatively, documents 17 and 18 focus more on Bre-X Minerals Ltd and their financials. We can now perform clustering using the PCA scores obtained above to see if we can uncover additional relationships between the documents.
+
+```{r, results = TRUE}
+#now we do clustering using PCA scores
+dist_matrix <- dist(pca_heather$x)
+tree_heather <- hclust(dist_matrix)
+plot(tree_heather)
+
+pruned_heather <- cutree(tree_heather, k = 5)
+```
+
+```{r, echo = TRUE, results = TRUE}
+#looking at the 5th cluster, we see that it placed documents similarly
+which(pruned_heather == 5)
+
+#same with 4th cluster
+which(pruned_heather == 4)
+```
+
+
+Clustering has resulted in similar groupings to what we saw in PCA. Documents 32, 33, and 34 are grouped together, and so are documents 17 and 18 (as expected). Although the results appear to be essentially the same as before, examining a dendrogram can be a simpler way to see how the documents are related.
+
+### Conclusion
+
+In conclusion, it's clear that PCA and clustering are optimal for organizing the documents within the corpus. PCA allowed us to summarize each document into a single pair of numbers while still maintaining a majority of the variation in the dataset. While it may be difficult to understand the contents of these documents from our perspective, it's likely that this grouping can be advantageous for companies looking to organize articles/documents regarding their performance and business deals. This example demonstrates how we can take the composition of words within a document and use them to make informed decisions.
+
+## Question 9: Association Rule Mining
+
+```{r}
+library(tidyverse)
+library(igraph)
+library(arules)
+library(arulesViz)
+library(RColorBrewer)
+```
+
+Using data regarding different customer's baskets at the grocery store allows us to predict what will be purchased by future customers. We began by reading in the dataset and performing data wrangling to get it in the correct format. This was done by creating a new ID variable for each customer, then pivoting longer to get each customer's basket items into their own observation. We can now split the data into baskets organized by customer and prepare to feed it into the Apriori algorithm. First, let's take a look at the most frequent cart items within the network.
+
+```{r}
+#read in txt doc, no headers, items separated by commas
+data_raw <- read.delim('groceries.txt', header = FALSE, sep = ',')
+
+#convert to dataframe
+data <- data.frame(data_raw)
+
+#create new column displaying customer 'id'
+data <- cbind(Customer = 1:nrow(data), data)
+
+#data wrangling
+clean_data <- data %>%
+  pivot_longer( #move each item to it's own row
+    cols = V1:V4, #select columns containing items in basket
+    values_to = 'items' #set new column name
+    ) %>%
+  select(-name) %>%  #remove unnecessary column
+  filter(items != '') #remove empty strings from items
+
+#confirm zero NAs
+sum(is.na(clean_data))
+
+#turn Customer into factor
+clean_data$Customer = factor(clean_data$Customer)
+
+#split into baskets organized by customer
+groceries <- split(x = clean_data$items, f = clean_data$Customer)
+head(groceries)
+
+#cast as arules 'transactions' class
+groceries_trans <- as(groceries, 'transactions')
+summary(groceries_trans)
+
+#view relative frequencies of basket items
+itemFrequencyPlot(
+  groceries_trans, topN = 20,
+  type = 'relative',
+  col = brewer.pal(9, 'Blues')
+  )
+```
+
+We can see that the item most commonly in our customer's baskets is whole milk, followed by other vegetables, rolls/buns, and soda. Now that we can visualize each item's relative frequency, we can now create our association rules. When determining the parameters for the algorithm, we first started with a low threshold for each rule (support >= 0.005, confidence >= 0.15, maxlen = 5). This is to ensure we are only selecting rules that will give us relative information about the network. Seen below is a scatterplot of each generated rule, which helps us visualize the support, confidence, and lift for each rule.
+
+```{r, results = TRUE, message = FALSE}
+#create rules
+grocery_rules <- apriori(groceries_trans,
+  parameter = list(
+    support = 0.005,
+    confidence = 0.15,
+    maxlen = 5
+    )
+  )
+
+plot(grocery_rules)
+
+#view rules
+#inspect(grocery_rules)
+```
+
+The plot supports the idea that rules with high lift tend to have low support. We put lift on the y-axis to get a different perspective:
+
+```{r}
+#lets put lift on the y-axis
+plot(grocery_rules, measure = c('support', 'lift'), shading = 'confidence')
+```
+
+This plot helps us choose stricter parameters for the graph we will export to Gephi. We chose a subset of rules with lift greater than 1.75 and confidence greater than 0.25, which filters for the most important rules in the network. The resulting 16 rules can be seen below.
+
+```{r, results = TRUE}
+inspect(subset(grocery_rules, subset = lift > 1.75 & confidence > 0.25))
+```
+```{r}
+grocery_graph = associations2igraph(subset(grocery_rules, lift > 1.75 & confidence > 0.25), associationsAsNodes = FALSE)
+igraph::write_graph(grocery_graph, file='grocery.graphml', format = "graphml")
+```
+
+We can see that our highest lift rule is from onions to root vegetables, which suggests that customers who add onions to their cart are more likely to add root vegetables to their basket.
+Finally, we export the network as a .graphml file so that it can be viewed and interpreted in Gephi.
+
+![](grocerygraph.png)
+
+The resulting network, although appearing quite simple, explains some relationships between the items in the basket of each customer. We can see that customers who add root/other vegetables to their baskets often add whole milk as well. Furthermore, we can see other cold goods such as yogurt and butter that are connected to whole milk. These relationships are easily interpretable since since our network consists of only a few grocery items. We expect customers who buy whole milk to add other cold items next, which is why we see yogurt and butter connected to milk. Additionally, the larger arrows pointing to whole milk leads us to believe that most people begin their shopping trip at the front of the grocery store where produce is often located before adding other items to their cart.
+
+With the addition of more customer's baskets and more grocery items, this network could become much more elaborate and offer further interesting relationships regarding customer's grocery baskets. The reason we see the greatest magnitude of vegetables and milk is likely due to the fact that these are some of the most commonly purchased groceries for all customers.
+
+
